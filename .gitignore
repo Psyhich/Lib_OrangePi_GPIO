@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+build/
+# Clangd cache
+.cache/
+compile_commands.json
