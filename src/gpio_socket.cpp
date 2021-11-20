@@ -1,5 +1,6 @@
 #include <exception>
 #include <fstream>
+#include <iostream>
 
 #include "gpio_socket.h"
 
@@ -41,7 +42,8 @@ bool GPIOSocket::write(const std::vector<char> &arraToWrite) {
 bool GPIOSocket::openGPIO(int portToOpen){
 	try {
 		std::ofstream exportSocket{SYS_GPIO_EXPORT_PATH};
-		exportSocket.write(reinterpret_cast<char*>(&portToOpen), sizeof(portToOpen));
+		std::string socketNumber = std::to_string(portToOpen); // To work with file sockets we need to write string value
+		exportSocket.write(reinterpret_cast<char*>(socketNumber.data()), sizeof(char) * socketNumber.length());
 	} catch (std::exception&) {
 		return false;
 	}
@@ -51,7 +53,8 @@ bool GPIOSocket::openGPIO(int portToOpen){
 bool GPIOSocket::closeGPIO(int portToClose){
 	try {
 		std::ofstream unexportSocket{SYS_GPIO_UNEXPORT_PATH};
-		unexportSocket.write(reinterpret_cast<char*>(&portToClose), sizeof(portToClose));
+		std::string socketNumber = std::to_string(portToClose); // To work with file sockets we need to write string value
+		unexportSocket.write(reinterpret_cast<char*>(socketNumber.data()), sizeof(char) * socketNumber.length());
 	} catch (std::exception&) {
 		return false;
 	}

@@ -12,7 +12,7 @@ namespace GPIOSockets {
 
 	constexpr const char* SYS_GPIO_PATH = GPIO_PATH;
 	constexpr const char* SYS_GPIO_EXPORT_PATH = GPIO_PATH "export";
-	constexpr const char* SYS_GPIO_UNEXPORT_PATH = GPIO_PATH "export";
+	constexpr const char* SYS_GPIO_UNEXPORT_PATH = GPIO_PATH "unexport";
 
 	class GPIOSocket {
 	public:
@@ -26,7 +26,6 @@ namespace GPIOSockets {
 		static bool openGPIO(int portToOpen);
 		static bool closeGPIO(int portToOpen);
 	protected:
-	private:
 	private:
 		std::string m_path;
 	};
