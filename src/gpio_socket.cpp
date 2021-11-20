@@ -1,3 +1,4 @@
+#include <exception>
 #include <fstream>
 
 #include "gpio_socket.h"
@@ -9,25 +10,52 @@ GPIOSocket::GPIOSocket(std::string path) {
 }
 
 std::optional<char> GPIOSocket::read() {
-	std::ifstream socketToRead(m_path);
 	std::optional<byte> readData = std::nullopt;
-	char byteToRead;
-	if(!socketToRead.get(byteToRead).eof()){
-		readData = byteToRead;
+	try { 
+		std::ifstream socketToRead{m_path + "/value"};
+		char byteToRead;
+		if(!socketToRead.get(byteToRead).eof()){
+			readData = byteToRead;
+		}
+	} catch(std::exception&) {
+
 	}
 
 	return readData;
 }
 
-void GPIOSocket::write(std::vector<char> arraToWrite) {
+bool GPIOSocket::write(const std::vector<char> &arraToWrite) {
+	try {
+		std::ofstream socketToWrite{m_path + "/value"};
 
+		for(char charToWrite : arraToWrite){
+			socketToWrite.put(charToWrite);
+		}
+		socketToWrite.flush();
+	} catch (std::exception&) {
+		return false;
+	}
+	return true;
 }
 
-void GPIOSocket::openGPIO(const int portToOpen){
-
+bool GPIOSocket::openGPIO(int portToOpen){
+	try {
+		std::ofstream exportSocket{SYS_GPIO_EXPORT_PATH};
+		exportSocket.write(reinterpret_cast<char*>(&portToOpen), sizeof(portToOpen));
+	} catch (std::exception&) {
+		return false;
+	}
+	return true;
 }
 
-void GPIOSocket::closeGPIO(const int portToOpen){
+bool GPIOSocket::closeGPIO(int portToClose){
+	try {
+		std::ofstream unexportSocket{SYS_GPIO_UNEXPORT_PATH};
+		unexportSocket.write(reinterpret_cast<char*>(&portToClose), sizeof(portToClose));
+	} catch (std::exception&) {
+		return false;
+	}
+	return true;
 
 }
 
