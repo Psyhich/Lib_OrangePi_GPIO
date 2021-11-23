@@ -2,7 +2,6 @@
 #include <fstream>
 #include <iostream>
 
-#include <poll.h>
 #include <unistd.h>
 #include <stdio.h>
 
@@ -11,7 +10,7 @@
 using namespace GPIOSockets;
 
 GPIOSocket::GPIOSocket(std::string path) {
-	m_path = SYS_GPIO_PATH + path;
+	m_path = GPIO_PATH + path;
 }
 GPIOSocket::~GPIOSocket() {
 	if(isReading()){
@@ -43,7 +42,7 @@ std::optional<char> GPIOSocket::read() noexcept {
 	return readData;
 }
 
-void GPIOSocket::readFunction(callbackFunc callback, const bool& shouldStop, const std::string &path) {
+void GPIOSocket::pollRead(callbackFunc callback, const bool& shouldStop, short flagToUse, const std::string &path) {
 	FILE* socketToRead = fopen(path.data(), "r");
 	if(socketToRead == nullptr) {
 		printf("Failed to open file\nPath: %s\n", path.data());
@@ -51,7 +50,7 @@ void GPIOSocket::readFunction(callbackFunc callback, const bool& shouldStop, con
 	}
 	pollfd gpioPollFD;
 	gpioPollFD.fd = fileno(socketToRead);
-	gpioPollFD.events = POLLIN;
+	gpioPollFD.events = flagToUse;
 
 	char readByte;
 	bool callbackStop = false;
@@ -61,7 +60,7 @@ void GPIOSocket::readFunction(callbackFunc callback, const bool& shouldStop, con
 		pollValue = poll(&gpioPollFD, 1, -1);
 		if(pollValue < 0){ continue; }
 			
-		if( (gpioPollFD.revents & POLLIN) == POLLIN){
+		if( (gpioPollFD.revents & flagToUse) == flagToUse){
 			lseek(gpioPollFD.fd, 0, SEEK_SET);
 			if(std::fread(&readByte, sizeof(readByte), 1, socketToRead) &&
 				readByte != '\0' && readByte != '\n'){
@@ -72,13 +71,24 @@ void GPIOSocket::readFunction(callbackFunc callback, const bool& shouldStop, con
 	} while(!shouldStop && !callbackStop);
 }
 
-void GPIOSocket::continiousRead(callbackFunc callback){
+void GPIOSocket::pollAllEvents(callbackFunc callback) {
 	if(isReading()){
 		printf("Tried to run second continious read on single socket\n");
 		return;
 	}
+
 	m_shouldStop = false;
-	m_runningThread = new std::thread(readFunction, callback, this->m_shouldStop, getPath() + "/value");
+	m_runningThread = new std::thread(pollAll, callback, this->m_shouldStop, getPath() + "/value");
+}
+
+void GPIOSocket::pollPriorityEvents(callbackFunc callback){
+	if(isReading()){
+		printf("Tried to run second continious read on single socket\n");
+		return;
+	}
+
+	m_shouldStop = false;
+	m_runningThread = new std::thread(pollInterupts, callback, this->m_shouldStop, getPath() + "/value");
 }
 
 void GPIOSocket::stopReading() {

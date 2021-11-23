@@ -1,7 +1,7 @@
 #ifndef ORANGEPI_LITE_GPIO_SOCKET
 #define ORANGEPI_LITE_GPIO_SOCKET
 
-#define GPIO_PATH "/sys/class/gpio/"
+#include <poll.h>
 
 #include <optional>
 #include <string>
@@ -12,17 +12,19 @@ namespace GPIOSockets {
 	using byte = unsigned char;
 	using callbackFunc = bool(*)(char);
 
-	constexpr const char* SYS_GPIO_PATH = GPIO_PATH;
-	constexpr const char* SYS_GPIO_EXPORT_PATH = GPIO_PATH "export";
-	constexpr const char* SYS_GPIO_UNEXPORT_PATH = GPIO_PATH "unexport";
 
 	class GPIOSocket {
 	public:
 		GPIOSocket(std::string path);
 		~GPIOSocket();
+		static inline  const std::string GPIO_PATH = "/sys/class/gpio/";
+		static inline const std::string SYS_GPIO_EXPORT_PATH = GPIO_PATH + "export";
+		static inline const std::string SYS_GPIO_UNEXPORT_PATH = GPIO_PATH + "unexport";
 		
 		std::optional<char> read() noexcept;
-		void continiousRead(callbackFunc callback);
+		void pollAllEvents(callbackFunc callback);
+		void pollPriorityEvents(callbackFunc callback);
+
 		bool write(const std::vector<char> &arrayToWrite) noexcept;
 		bool write(char charToWrite) noexcept;
 
@@ -40,7 +42,15 @@ namespace GPIOSockets {
 		static bool closeGPIO(int portToOpen) noexcept;
 	protected:
 	private:
-		static void readFunction(callbackFunc callback, const bool& shouldStop, const std::string &path);
+		static void pollRead(callbackFunc callback, const bool& shouldStop, short flagToUse, const std::string &path);
+
+		static inline void pollAll(callbackFunc callback, const bool& shouldStop, const std::string &path){
+			pollRead(callback, shouldStop, POLLIN, path);
+		}
+
+		static inline void pollInterupts(callbackFunc callback, const bool& shouldStop, const std::string &path) {
+			pollRead(callback, shouldStop, POLLPRI, path);
+		}
 		std::string m_path;
 
 		std::thread *m_runningThread{nullptr};
