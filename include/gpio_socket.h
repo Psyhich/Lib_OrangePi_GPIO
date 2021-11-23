@@ -7,10 +7,11 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <functional>
 
 namespace GPIOSockets {
 	using byte = unsigned char;
-	using callbackFunc = bool(*)(char);
+	using callbackFunc = std::function<bool(char)>;
 
 
 	class GPIOSocket {
