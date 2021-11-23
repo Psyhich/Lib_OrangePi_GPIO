@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 
 project(orangepilite_gpio)
 
@@ -9,8 +9,10 @@ execute_process(
         ${CMAKE_SOURCE_DIR}/compile_commands.json
 )
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS 1) 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 set(SOURCES 
 	include/gpio_socket.h
