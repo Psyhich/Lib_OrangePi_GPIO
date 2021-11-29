@@ -9,25 +9,23 @@
 #include <thread>
 #include <functional>
 
-namespace GPIOSockets {
+namespace GPIO::Sockets {
 	using byte = unsigned char;
 	using callbackFunc = std::function<bool(char)>;
-
 
 	class GPIOSocket {
 	public:
 		GPIOSocket(std::string path);
 		~GPIOSocket();
-		static inline  const std::string GPIO_PATH = "/sys/class/gpio/";
+		static inline const std::string GPIO_PATH = "/sys/class/gpio/";
 		static inline const std::string SYS_GPIO_EXPORT_PATH = GPIO_PATH + "export";
 		static inline const std::string SYS_GPIO_UNEXPORT_PATH = GPIO_PATH + "unexport";
 		
-		std::optional<char> read() noexcept;
+		std::optional<char> read();
 		void pollAllEvents(callbackFunc callback);
 		void pollPriorityEvents(callbackFunc callback);
 
-		bool write(const std::vector<char> &arrayToWrite) noexcept;
-		bool write(char charToWrite) noexcept;
+		void write(char charToWrite);
 
 		inline std::string getPath() const noexcept { return m_path; }
 		inline bool isReading() const noexcept { return m_runningThread != nullptr; }
@@ -39,8 +37,8 @@ namespace GPIOSockets {
 		}
 		void stopReading();
 
-		static bool openGPIO(int portToOpen) noexcept;
-		static bool closeGPIO(int portToOpen) noexcept;
+		static void openGPIO(int portToOpen);
+		static void closeGPIO(int portToOpen);
 	protected:
 	private:
 		static void pollRead(callbackFunc callback, const bool& shouldStop, short flagToUse, const std::string &path);

@@ -7,7 +7,7 @@
 
 #include "gpio_socket.h"
 
-using namespace GPIOSockets;
+using namespace GPIO::Sockets;
 
 GPIOSocket::GPIOSocket(std::string path) {
 	m_path = GPIO_PATH + path;
@@ -22,7 +22,7 @@ GPIOSocket::~GPIOSocket() {
 	}
 }
 
-std::optional<char> GPIOSocket::read() noexcept {
+std::optional<char> GPIOSocket::read() {
 	std::optional<byte> readData = std::nullopt;
 
 	if(isReading()){
@@ -30,14 +30,10 @@ std::optional<char> GPIOSocket::read() noexcept {
 		return readData;
 	}
 
-	try { 
-		std::ifstream socketToRead{m_path + "/value"};
-		char byteToRead;
-		socketToRead.get(byteToRead);
-		readData = byteToRead;
-	} catch(std::exception&) {
-		printf("Error while reading single byte\n");
-	}
+	std::ifstream socketToRead{m_path + "/value"};
+	char byteToRead;
+	socketToRead.get(byteToRead);
+	readData = byteToRead;
 
 	return readData;
 }
@@ -101,51 +97,22 @@ void GPIOSocket::stopReading() {
 	}
 }
 
-bool GPIOSocket::write(const std::vector<char> &arraToWrite) noexcept{
-	try {
-		std::ofstream socketToWrite{m_path + "/value"};
+void GPIOSocket::write(char charToWrite) {
+	std::ofstream socketToWrite{m_path + "/value"};
 
-		for(char charToWrite : arraToWrite){
-			socketToWrite.put(charToWrite);
-		}
-		socketToWrite.flush();
-	} catch (std::exception&) {
-		return false;
-	}
-	return true;
+	socketToWrite.put(charToWrite);
+	socketToWrite.flush();
 }
 
-bool GPIOSocket::write(char charToWrite) noexcept{
-	try {
-		std::ofstream socketToWrite{m_path + "/value"};
-
-		socketToWrite.put(charToWrite);
-		socketToWrite.flush();
-	} catch (std::exception&) {
-		return false;
-	}
-	return true;
+void GPIOSocket::openGPIO(int portToOpen) {
+	std::ofstream exportSocket{SYS_GPIO_EXPORT_PATH};
+	std::string socketNumber = std::to_string(portToOpen); // To work with file sockets we need to write string value
+	exportSocket.write(reinterpret_cast<char*>(socketNumber.data()), sizeof(char) * socketNumber.length());
 }
 
-bool GPIOSocket::openGPIO(int portToOpen) noexcept {
-	try {
-		std::ofstream exportSocket{SYS_GPIO_EXPORT_PATH};
-		std::string socketNumber = std::to_string(portToOpen); // To work with file sockets we need to write string value
-		exportSocket.write(reinterpret_cast<char*>(socketNumber.data()), sizeof(char) * socketNumber.length());
-	} catch (std::exception&) {
-		return false;
-	}
-	return true;
-}
-
-bool GPIOSocket::closeGPIO(int portToClose) noexcept {
-	try {
-		std::ofstream unexportSocket{SYS_GPIO_UNEXPORT_PATH};
-		std::string socketNumber = std::to_string(portToClose); // To work with file sockets we need to write string value
-		unexportSocket.write(reinterpret_cast<char*>(socketNumber.data()), sizeof(char) * socketNumber.length());
-	} catch (std::exception&) {
-		return false;
-	}
-	return true;
+void GPIOSocket::closeGPIO(int portToClose) {
+	std::ofstream unexportSocket{SYS_GPIO_UNEXPORT_PATH};
+	std::string socketNumber = std::to_string(portToClose); // To work with file sockets we need to write string value
+	unexportSocket.write(reinterpret_cast<char*>(socketNumber.data()), sizeof(char) * socketNumber.length());
 }
 
