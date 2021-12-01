@@ -1,15 +1,17 @@
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/epoll.h>
+#include <fcntl.h>
+
 #include <exception>
 #include <fstream>
 #include <iostream>
-
-#include <unistd.h>
-#include <stdio.h>
 
 #include "gpio_socket.h"
 
 using namespace GPIO::Sockets;
 
-GPIOSocket::GPIOSocket(std::string path) {
+GPIOSocket::GPIOSocket(const std::string &path) {
 	m_path = GPIO_PATH + path;
 }
 GPIOSocket::~GPIOSocket() {
@@ -39,32 +41,42 @@ std::optional<char> GPIOSocket::read() {
 }
 
 void GPIOSocket::pollRead(callbackFunc callback, const bool& shouldStop, short flagToUse, const std::string &path) {
-	FILE* socketToRead = fopen(path.data(), "r");
-	if(socketToRead == nullptr) {
-		printf("Failed to open file\nPath: %s\n", path.data());
-		return;
+	int epollFD = epoll_create(1);
+	if(epollFD == -1){
+		throw std::runtime_error("Failed to create epoll");
 	}
-	pollfd gpioPollFD;
-	gpioPollFD.fd = fileno(socketToRead);
-	gpioPollFD.events = flagToUse;
 
+	int socketToRead = open(path.c_str(), O_RDONLY | O_NONBLOCK);
+	if(socketToRead < 0) {
+		throw std::runtime_error(std::string("Failed to open file\nPath: ") + path.data());
+	}
+
+	// Creating epoll struct
+	struct epoll_event gpioPollFD;
+	gpioPollFD.data.fd = socketToRead;
+	gpioPollFD.events = EPOLLET;
+
+	// Adding gpio fd to epoll
+	if(epoll_ctl(epollFD, EPOLL_CTL_ADD, socketToRead, &gpioPollFD) == -1) {
+		throw std::runtime_error("Failed to add custom file descriptor to epoll");
+	}
+	
 	char readByte;
 	bool callbackStop = false;
 	int pollValue;
 
 	do {
-		pollValue = poll(&gpioPollFD, 1, -1);
-		if(pollValue < 0){ continue; }
+		struct epoll_event events;
+		pollValue = epoll_wait(epollFD, &events, 1, 100);
+		if(pollValue == 0) { continue; }
+		if(pollValue == -1) { break; }
 			
-		if( (gpioPollFD.revents & flagToUse) == flagToUse){
-			lseek(gpioPollFD.fd, 0, SEEK_SET);
-			if(std::fread(&readByte, sizeof(readByte), 1, socketToRead) &&
-				readByte != '\0' && readByte != '\n'){
-				callbackStop = callback(readByte);
-			}
-
+		lseek(events.data.fd, 0, SEEK_SET);
+		if(::read(events.data.fd, &readByte, 1)){
+			callbackStop = callback(readByte);
 		}
 	} while(!shouldStop && !callbackStop);
+	close(epollFD);
 }
 
 void GPIOSocket::pollAllEvents(callbackFunc callback) {

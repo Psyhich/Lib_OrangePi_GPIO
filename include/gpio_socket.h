@@ -15,7 +15,7 @@ namespace GPIO::Sockets {
 
 	class GPIOSocket {
 	public:
-		GPIOSocket(std::string path);
+		GPIOSocket(const std::string &path);
 		~GPIOSocket();
 		static inline const std::string GPIO_PATH = "/sys/class/gpio/";
 		static inline const std::string SYS_GPIO_EXPORT_PATH = GPIO_PATH + "export";
@@ -27,7 +27,7 @@ namespace GPIO::Sockets {
 
 		void write(char charToWrite);
 
-		inline std::string getPath() const noexcept { return m_path; }
+		inline const std::string &getPath() const noexcept { return m_path; }
 		inline bool isReading() const noexcept { return m_runningThread != nullptr; }
 
 		inline void joinReading(){
@@ -54,6 +54,8 @@ namespace GPIO::Sockets {
 
 		std::thread *m_runningThread{nullptr};
 		bool m_shouldStop{false};
+
+		static inline constexpr int MAX_EPOLL_EVENTS = 100;
 	};
 }
 
