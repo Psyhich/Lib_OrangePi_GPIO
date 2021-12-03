@@ -9,23 +9,34 @@
 #include <thread>
 #include <functional>
 
+namespace GPIO {
+	enum class PinValue{
+		None,
+		High = 1,
+		Low = 0
+	};
+
+	PinValue fromChar(char charToParse) noexcept;
+	char toChar(PinValue value) noexcept;
+}
+
 namespace GPIO::Sockets {
 	using byte = unsigned char;
-	using callbackFunc = std::function<bool(char)>;
+	using callbackFunc = std::function<bool(PinValue)>;
 
 	class GPIOSocket {
 	public:
-		GPIOSocket(const std::string &path);
+		explicit GPIOSocket(const std::string &path);
 		~GPIOSocket();
 		static inline const std::string GPIO_PATH = "/sys/class/gpio/";
 		static inline const std::string SYS_GPIO_EXPORT_PATH = GPIO_PATH + "export";
 		static inline const std::string SYS_GPIO_UNEXPORT_PATH = GPIO_PATH + "unexport";
 		
-		std::optional<char> read();
+		PinValue read();
 		void pollAllEvents(callbackFunc callback);
 		void pollPriorityEvents(callbackFunc callback);
 
-		void write(char charToWrite);
+		void write(PinValue valueToWrite);
 
 		inline const std::string &getPath() const noexcept { return m_path; }
 		inline bool isReading() const noexcept { return m_runningThread != nullptr; }

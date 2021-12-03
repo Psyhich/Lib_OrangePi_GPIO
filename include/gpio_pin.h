@@ -22,14 +22,8 @@ public:
 		Both
 	};
 
-	enum class PinValue{
-		None,
-		High,
-		Low
-	};
-
-	GPIOPin(std::string pinID, DirectionMode dir=DirectionMode::None, EdgeMode edge=EdgeMode::None);
-	GPIOPin(unsigned pinNumber, DirectionMode dir=DirectionMode::None, EdgeMode edge=EdgeMode::None);
+	explicit GPIOPin(const std::string &pinID, DirectionMode dir=DirectionMode::None, EdgeMode edge=EdgeMode::None);
+	explicit GPIOPin(unsigned pinNumber, DirectionMode dir=DirectionMode::None, EdgeMode edge=EdgeMode::None);
 
 	GPIOPin(GPIOPin &&pinToMove);
 	GPIOPin &operator=(GPIOPin &&pinToMove);

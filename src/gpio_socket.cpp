@@ -11,6 +11,23 @@
 
 using namespace GPIO::Sockets;
 
+GPIO::PinValue GPIO::fromChar(char charToParse) noexcept {
+	switch (charToParse) {
+		case '1': return GPIO::PinValue::High;
+		case '0': return GPIO::PinValue::Low;
+		default: return GPIO::PinValue::None;
+	}
+}
+
+char GPIO::toChar(GPIO::PinValue value) noexcept {
+	switch (value) {
+		case GPIO::PinValue::High: return '1';
+		case GPIO::PinValue::Low: return '0';
+		default: return '\0';
+	}
+
+}
+
 GPIOSocket::GPIOSocket(const std::string &path) {
 	m_path = GPIO_PATH + path;
 }
@@ -24,20 +41,18 @@ GPIOSocket::~GPIOSocket() {
 	}
 }
 
-std::optional<char> GPIOSocket::read() {
-	std::optional<byte> readData = std::nullopt;
-
+GPIO::PinValue GPIOSocket::read() {
 	if(isReading()){
 		printf("Tried to run second read on single socket\n");
-		return readData;
+		return GPIO::PinValue::None;
 	}
 
 	std::ifstream socketToRead{m_path + "/value"};
 	char byteToRead;
 	socketToRead.get(byteToRead);
-	readData = byteToRead;
+	socketToRead.close();
 
-	return readData;
+	return fromChar(byteToRead);
 }
 
 void GPIOSocket::pollRead(callbackFunc callback, const bool& shouldStop, short flagToUse, const std::string &path) {
@@ -73,7 +88,7 @@ void GPIOSocket::pollRead(callbackFunc callback, const bool& shouldStop, short f
 			
 		lseek(events.data.fd, 0, SEEK_SET);
 		if(::read(events.data.fd, &readByte, 1)){
-			callbackStop = callback(readByte);
+			callbackStop = callback(fromChar(readByte));
 		}
 	} while(!shouldStop && !callbackStop);
 	close(epollFD);
@@ -109,10 +124,10 @@ void GPIOSocket::stopReading() {
 	}
 }
 
-void GPIOSocket::write(char charToWrite) {
+void GPIOSocket::write(GPIO::PinValue valueToWrite) {
 	std::ofstream socketToWrite{m_path + "/value"};
 
-	socketToWrite.put(charToWrite);
+	socketToWrite.put(toChar(valueToWrite));
 	socketToWrite.flush();
 }
 

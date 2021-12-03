@@ -26,7 +26,7 @@ std::optional<unsigned> GPIO::GPIOPin::parsePindID(const std::string &pinID) {
 	return num;
 }
 
-GPIO::GPIOPin::GPIOPin(std::string pinID, DirectionMode dir, EdgeMode edge) : 
+GPIO::GPIOPin::GPIOPin(const std::string &pinID, DirectionMode dir, EdgeMode edge) : 
 						m_direction{dir}, m_edge{edge}{
 	const auto parsedPinID = parsePindID(pinID);
 	unsigned number = parsedPinID ? *parsedPinID : 0;
@@ -133,39 +133,24 @@ void GPIO::GPIOPin::setEdge(EdgeMode edgeMode){
 	edgePath << stringToWrite;
 }
 
-GPIO::GPIOPin::PinValue GPIO::GPIOPin::readValue() {
+GPIO::PinValue GPIO::GPIOPin::readValue() {
 	if(m_socket == nullptr){ 
 		throw std::runtime_error("Try to reach unexisting socket"); 
 	}
 
-	auto readChar = m_socket->read();
-	if(readChar) {
-		switch(*readChar) {
-			case '0': return PinValue::Low;
-			case '1': return PinValue::High;
-			default: return PinValue::None;
-		}
-	}
-	return PinValue::None;
+	return m_socket->read();
 }
 
-void GPIO::GPIOPin::writeValue(GPIO::GPIOPin::PinValue valueToWrite) {
+void GPIO::GPIOPin::writeValue(GPIO::PinValue valueToWrite) {
 	if(m_socket == nullptr){ 
 		throw std::runtime_error("Try to reach unexisting socket"); 
 	}
 
-	char charToWrite;
-	switch(valueToWrite) {
-		case PinValue::High: charToWrite = '1'; break;
-		case PinValue::Low: charToWrite = '0'; break;
-		case PinValue::None: return;
-	}
-	std::ofstream valueFile{m_socket->getPath() + valuePath};
-	valueFile << charToWrite;
+	m_socket->write(valueToWrite);
 }
 
 void GPIO::GPIOPin::pollAllEvets(Sockets::callbackFunc callback) {
-	if(m_socket == nullptr){ 
+	if(m_socket == nullptr) { 
 		throw std::runtime_error("Try to reach unexisting socket"); 
 	}
 	if(m_socket->isReading()) {
